@@ -145,14 +145,15 @@ class ClusterExperiment(object):
                 command_prologue = "module load anaconda2/5.0.1 gcc/5.3.0 cudnn/6.0"
                 command_epilogue = "wait"
                 command = []
-                for i, experimental_config in enumerate(experimental_configs):
-                    command.append("python {filename} {config} --log_dir={log_dir} --log_filename={log_filename}")
+                for i, experimental_config in enumerate(chunk):
+                    _cmd = "CUDA_VISIBLE_DEVICES={device} python {filename} {config} --log_dir={log_dir} --log_filename={log_filename}"
+                    command.append(_cmd.format(device=i,
+                                               filename=exp_filename,
+                                               config=' '.join(experimental_config),
+                                               log_dir=temp_log_dir,
+                                               log_filename=log_filename,
+                    ))
                 command = ' &\n'.join(command)
-
-                command = command.format(filename=exp_filename,
-                                         config=' '.join(experimental_config),
-                                         log_dir=temp_log_dir,
-                                         log_filename=log_filename)
 
                 # Build IO maps.
                 input_output_map = (experimental_config,
@@ -279,10 +280,12 @@ class ClusterExperiment(object):
             print("-----------------")
 
 
-def chunker(iterable, n):
-    """Split the iterable into chunks if size n, yielding each new group"""
+def chunker(iterable, n=1):
+    """Split the iterable into chunks of size n, yielding iterables of each new chunk"""
+    if n < 1:
+        raise ValueError("The size of the chunk 'n' must be 1 or greater")
     it = iter(iterable)
     while True:
-        chunk = itertools.chain([next(it)], itertools.islice(it, 0, n))
+        chunk = itertools.chain([next(it)], itertools.islice(it, 0, n-1))
         yield chunk
     
