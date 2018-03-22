@@ -27,7 +27,7 @@ cd $PBS_O_WORKDIR
 
 
 class ClusterExperiment(object):
-    account = ''
+    account = 'MHPCC96670DA1'
     queue = 'standard'
     walltime = '4:00:00'
     resources = '1:ncpus=20:mpiprocs=20'
@@ -45,7 +45,13 @@ class ClusterExperiment(object):
 
         Parameters
         ----------
-        flag (str) - 
+        flag (str)
+          This will be turned into the parameter name passed to the experiment script.
+          i.e. "batch_size" becomes "--batch_size=..." in the job script
+        value_it (iterable of values for the flag)
+          This will be expanded to have one value per experiment.
+          e.g. add_design('batch_size', [128, 256]) becomes two different experiments,
+            one for --batch_size=128, and another for --batch_size=256
         """
         self.independent_designs.append((flag, list(value_it)))
 
@@ -95,7 +101,7 @@ class ClusterExperiment(object):
                           manager='pbs', shuffle_job_order=True, job_fmt='dist_ex_{}',
                           walltime=None, select=None,
                           account=None, queue=None,
-                          experiments_per_job=1):
+                          experiments_per_job=1, dry_run=False):
         """Submit all the experiments to the batch scheduler.
 
         Parameters
@@ -111,6 +117,9 @@ class ClusterExperiment(object):
         queue (None or str)
         experiments_per_job (int)
           - denotes how many experiments will be batched into each job submitted to the scheduler.
+        dry_run (bool)
+          - Tells whether or not the script will actually be submitted to the scheduler,
+            or if we simply print what would have been submitted.
         """
 
         if account is None:
@@ -135,7 +144,8 @@ class ClusterExperiment(object):
         for job_idx, chunk in enumerate(chunker(experimental_configs, experiments_per_job)):
             if manager.lower() == 'pbs':
                 # Use subproces to command qsub to submit a job.
-                p = subprocess.Popen('qsub', stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
+                if not dry_run:
+                    p = subprocess.Popen('qsub', stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
 
                 # Customize your options here.
                 job_name = job_fmt.format(job_idx)
@@ -145,6 +155,8 @@ class ClusterExperiment(object):
                 command_prologue = "module load anaconda2/5.0.1 gcc/5.3.0 cudnn/6.0"
                 command_epilogue = "wait"
                 command = []
+                # Build the commands that will be run simultaneously in the PBS script.
+                # This entails running them all in the background and waiting for them to complete
                 for i, experimental_config in enumerate(chunk):
                     _cmd = "CUDA_VISIBLE_DEVICES={device} python {filename} {config} --log_dir={log_dir} --log_filename={log_filename}"
                     command.append(_cmd.format(device=i,
@@ -173,9 +185,10 @@ class ClusterExperiment(object):
 
                 print(job_script)
 
-                # Send job_string to qsub.
-                self._job_ids.append(p.communicate(job_script)[0])
-                time.sleep(1)
+                # Send job_script to qsub.
+                if not dry_run:
+                    self._job_ids.append(p.communicate(job_script)[0])
+                    time.sleep(1)
 
             else:
                 raise ValueError("Unknown manager '{}' supplied to launch_experiment(). Allowed managers: 'pbs'".format(manager))

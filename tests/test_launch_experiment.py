@@ -45,6 +45,7 @@ def test_non_pbs_manager():
 
 def test_launch_batched_experiments():
     """Test that launching 10 experiments with a batch size of 4 makes three job scripts"""
+    
     experiment = cluster_experiment.ClusterExperiment()
     # Now make 10 experiments
     experiment.add_design('parameter', list(range(10)))
