@@ -94,7 +94,24 @@ class ClusterExperiment(object):
     def launch_experiment(self, exp_filename, log_dir,
                           manager='pbs', shuffle_job_order=True, job_fmt='dist_ex_{}',
                           walltime=None, select=None,
-                          account=None, queue=None):
+                          account=None, queue=None,
+                          experiments_per_job=1):
+        """Submit all the experiments to the batch scheduler.
+
+        Parameters
+        ----------
+        exp_filename (str)
+        log_dir (str)
+        manager (str, one of ['pbs'])
+        shuffle_job_order (bool)
+        job_fmt (format str)
+        walltime (None or 'HH:MM:SS')
+        select (None or str)
+        account (None or str)
+        queue (None or str)
+        experiments_per_job (int)
+          - denotes how many experiments will be batched into each job submitted to the scheduler.
+        """
 
         if account is None:
             account = self.account
@@ -115,19 +132,23 @@ class ClusterExperiment(object):
             random.shuffle(experimental_configs)
 
         # Iterate over each experimental configuration, launching jobs.
-        for i, experimental_config in enumerate(experimental_configs):
+        for job_idx, chunk in enumerate(chunker(experimental_configs, experiments_per_job)):
             if manager.lower() == 'pbs':
                 # Use subproces to command qsub to submit a job.
                 p = subprocess.Popen('qsub', stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
 
                 # Customize your options here.
-                job_name = job_fmt.format(i)
-                temp_log_dir = os.path.join(log_dir, 'templog_' + str(i))
-                log_filename = 'templog_' + str(i)
-                
+                job_name = job_fmt.format(job_idx)
+                temp_log_dir = os.path.join(log_dir, 'templog_' + str(job_idx))
+                log_filename = 'templog_' + str(job_idx)
+
                 command_prologue = "module load anaconda2/5.0.1 gcc/5.3.0 cudnn/6.0"
-                command_epilogue = ""
-                command = "python {filename} {config} --log_dir={log_dir} --log_filename={log_filename}"
+                command_epilogue = "wait"
+                command = []
+                for i, experimental_config in enumerate(experimental_configs):
+                    command.append("python {filename} {config} --log_dir={log_dir} --log_filename={log_filename}")
+                command = ' &\n'.join(command)
+
                 command = command.format(filename=exp_filename,
                                          config=' '.join(experimental_config),
                                          log_dir=temp_log_dir,
@@ -256,3 +277,12 @@ class ClusterExperiment(object):
                         print("output filename not found: " + output_filename)
 
             print("-----------------")
+
+
+def chunker(iterable, n):
+    """Split the iterable into chunks if size n, yielding each new group"""
+    it = iter(iterable)
+    while True:
+        chunk = itertools.chain([next(it)], itertools.islice(it, 0, n))
+        yield chunk
+    
