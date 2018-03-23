@@ -10,28 +10,15 @@ import random
 import itertools
 import subprocess
 
-JOB_SCRIPT_TEMPLATE = """\
-#!/bin/bash
-#PBS -N {job_name}
-#PBS -l walltime={walltime}
-#PBS -l select={select}
-#PBS -o ~/log/output/{job_name}.out
-#PBS -e ~/log/error/{job_name}.err
-#PBS -A {account}
-#PBS -q {queue}
-cd $PBS_O_WORKDIR
-{command_prologue}
-{command}
-{command_epilogue}
-"""
-
+JOB_SCRIPT_TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+JOB_SCRIPT_TEMPLATE = open(os.path.join(JOB_SCRIPT_TEMPLATE_DIR, 'default_job_template.pbs'), 'r').read()
 
 class ClusterExperiment(object):
     account = 'MHPCC96670DA1'
     queue = 'standard'
     walltime = '4:00:00'
     resources = '1:ncpus=20:mpiprocs=20'
-    
+
     def __init__(self):
         self.experimental_configs = []
         self.independent_designs = []

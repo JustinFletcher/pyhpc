@@ -1,0 +1,17 @@
+#!/bin/bash
+#PBS -N {job_name}
+#PBS -l walltime={walltime}
+#PBS -l select={select}
+#PBS -o ~/log/output/{job_name}.out
+#PBS -e ~/log/error/{job_name}.err
+#PBS -A {account}
+#PBS -q {queue}
+
+#This PBS script was generated from a template by the pyhpc experiment launcher
+#The launcher customized the job name, walltime, resources requested by 'select'
+#  log output, account, queue, and the script commands.
+
+cd $PBS_O_WORKDIR
+{command_prologue}
+{command}
+{command_epilogue}
