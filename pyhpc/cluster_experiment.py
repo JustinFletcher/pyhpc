@@ -230,7 +230,7 @@ class ClusterExperiment(object):
                     print(job_id)
 
                     # Convert the bytes to an ID string.
-                    job_id = str(job_id)[1:-2]
+                    job_id = str(job_id)[2:-2]
 
 
                     self._job_ids.append(job_id)
