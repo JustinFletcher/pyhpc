@@ -129,7 +129,7 @@ class ClusterExperiment(object):
 
         if select is None:
             select = self.resources
-            
+
         experimental_configs = self.get_configs()
 
         if shuffle_job_order:
@@ -185,7 +185,13 @@ class ClusterExperiment(object):
 
                 # Send job_script to qsub.
                 if not dry_run:
-                    self._job_ids.append(p.communicate(job_script)[0])
+
+                    job_script = bytes(job_script)
+
+                    # Send job_string to qsub, returning a job ID in bytes.
+                    job_id = p.communicate(job_script)[0]
+
+                    self._job_ids.append(job_id)
                     time.sleep(1)
 
             else:
