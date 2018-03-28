@@ -199,6 +199,7 @@ class ClusterExperiment(object):
                                                log_dir=temp_log_dir,
                                                log_filename=log_filename,
                     ))
+
                 command = ' &\n'.join(command)
 
                 # Build IO maps.
@@ -217,21 +218,21 @@ class ClusterExperiment(object):
                                                         command_prologue=command_prologue,
                                                         command_epilogue=command_epilogue)
 
+                print("----Start Job Script----")
                 print(job_script)
+                print("----End Job Script----")
 
                 # Send job_script to qsub.
                 if not dry_run:
 
+                    # Convert the job_script str to bytes for p.
                     job_script = bytes(job_script, 'utf-8')
 
                     # Send job_string to qsub, returning a job ID in bytes.
                     job_id = p.communicate(job_script)[0]
-                    print("job_id = ")
-                    print(job_id)
 
                     # Convert the bytes to an ID string.
                     job_id = str(job_id)[2:-2]
-
 
                     self._job_ids.append(job_id)
                     time.sleep(1)
@@ -239,8 +240,8 @@ class ClusterExperiment(object):
             else:
                 raise ValueError("Unknown manager '{}' supplied to launch_experiment(). Allowed managers: 'pbs'".format(manager))
 
-    def join_job_output(self, log_dir, log_filename, max_runtime, job_ids):
-        '''Wait until all the the jobs complete
+    def join_job_output(self, log_dir, log_filename, max_runtime, job_ids, response_labels):
+        '''Wait until all the the jobs complete while writing partial results.
         '''
 
         jobs_complete = False
@@ -249,36 +250,57 @@ class ClusterExperiment(object):
 
         # Loop until timeout or all jobs complete.
         while not(jobs_complete) and not(timeout):
-            print("-----------------")
+
+            print("----Writing Partial Results----")
             print('Time elapsed: ' + str(elapsed_time) + ' seconds.')
+
+            # TODO: Make a correct counter.
             time.sleep(10)
+
             elapsed_time += 10
 
             # Create a list to hold the Bool job complete flags
             job_complete_flags = []
+
             # Iterate over each job id string.
             for job_id in self._job_ids:
+
                 # TODO: Handle job completion gracefully.
+
                 # Issue qstat command to get job status.
                 p = subprocess.Popen('qstat -r ' + job_id,
                                      stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE,
                                      shell=True)
+                print(job_id)
 
+                # Get the subprocess output from qstat.
                 output = p.communicate()
 
+                # Compute the job completion flag.
                 try:
+
                     # Read the qstat out, parse the state, and conv to Boolean.
                     job_complete = output[0].split()[-2] == 'E'
+
                 except:
+
                     job_complete = True
 
                 # Print a diagnostic.
-                print('Job', job_id[:-1], 'complete?', str(job_complete))
+                print('Job ' +
+                      job_id +
+                      ' complete? ' +
+                      str(job_complete) +
+                      '.')
 
+                # Append the completion flag.
                 job_complete_flags.append(job_complete)
 
+                # If the job is complete...
                 if job_complete:
+
+                    # ...clear it form the queue.
                     p = subprocess.Popen('qdel -Wforce ' + job_id,
                                          stdin=subprocess.PIPE,
                                          stdout=subprocess.PIPE,
@@ -290,20 +312,10 @@ class ClusterExperiment(object):
             # Check if we've reached timeout.
             timeout = (elapsed_time > max_runtime)
 
-            # # Accomodate Python 3+
-            # with open(FLAGS.log_dir '/' + FLAGS.log_filename, 'w') as csvfile:
+            # Open a csv for writeout.
+            with open(log_dir + '/' + log_filename, 'w') as csvfile:
 
-            # Accomodate Python 2.7 on Hokulea.
-            with open(log_dir + '/' + log_filename, 'wb') as csvfile:
-                # Manually note response varaibles.
-                response_labels = ['step_num',
-                                   'train_loss',
-                                   'train_error',
-                                   'val_loss',
-                                   'val_error',
-                                   'mean_running_time']
-
-                # Join lists.
+                # Join the parameter labels and respons labels, making a header.
                 headers = self.get_parameter_labels() + response_labels
 
                 # Open a writer and write the header.
@@ -319,24 +331,31 @@ class ClusterExperiment(object):
 
                     # Process the flags into output values.
                     for flag in input_flags:
+
                         flag_val = flag.split('=')[1]
+
                         input_row.append(flag_val)
 
                     output_file = output_dir + output_filename
-                    print("output_file")
 
                     # Check if the output file has been written.
                     if os.path.exists(output_file):
+
                         with open(output_file, 'rb') as f:
+
                             reader = csv.reader(f)
+
                             for output_row in reader:
+
                                 csvwriter.writerow(input_row + output_row)
-                        print("---------------------------------------")
 
                     else:
+
                         print("output filename not found: " + output_filename)
 
             print("-----------------")
+
+
 
 
 def chunker(iterable, n=1):
