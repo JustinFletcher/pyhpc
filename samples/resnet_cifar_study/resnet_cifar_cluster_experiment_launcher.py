@@ -42,9 +42,9 @@ def main(FLAGS):
     # Launch the experiment.
     exp.launch_experiment(exp_filename=FLAGS.experiment_py_file,
                           log_dir=FLAGS.log_dir,
-                          account_str='MHPCC96650DE1',
-                          queue_str='standard',
-                          module_str='anaconda3/5.0.1 tensorflow',
+                          account='MHPCC96650DE1',
+                          queue='standard',
+                          command_prolouge='module load anaconda3/5.0.1 tensorflow',
                           manager='pbs',
                           shuffle_job_order=True)
 

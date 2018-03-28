@@ -84,11 +84,19 @@ class ClusterExperiment(object):
 
         return(parameter_labels)
 
-    def launch_experiment(self, exp_filename, log_dir,
-                          manager='pbs', shuffle_job_order=True, job_fmt='dist_ex_{}',
-                          walltime=None, select=None,
-                          account=None, queue=None,
-                          experiments_per_job=1, dry_run=False):
+    def launch_experiment(self,
+                          exp_filename,
+                          log_dir,
+                          manager='pbs',
+                          shuffle_job_order=True,
+                          job_fmt='dist_ex_{}',
+                          command_prologue="",
+                          walltime=None,
+                          select=None,
+                          account=None,
+                          queue=None,
+                          experiments_per_job=1,
+                          dry_run=False):
         """Submit all the experiments to the batch scheduler.
 
         Parameters
@@ -98,6 +106,7 @@ class ClusterExperiment(object):
         manager (str, one of ['pbs'])
         shuffle_job_order (bool)
         job_fmt (format str)
+        command_prologue (str, e.g. 'module load <module>')
         walltime (None or 'HH:MM:SS')
         select (None or str)
         account (None or str)
@@ -140,7 +149,7 @@ class ClusterExperiment(object):
                 log_filename = 'templog_' + str(job_idx)
 
                 # TODO: Command prologue and epilogue should be configurable.
-                command_prologue = "module load anaconda3/5.0.1 tensorflow"
+                # command_prologue = "module load anaconda3/5.0.1 tensorflow"
                 command_epilogue = "wait"
                 command = []
 
