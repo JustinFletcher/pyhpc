@@ -186,7 +186,7 @@ class ClusterExperiment(object):
                 # Send job_script to qsub.
                 if not dry_run:
 
-                    job_script = bytes(job_script)
+                    job_script = bytes(job_script, 'utf-8')
 
                     # Send job_string to qsub, returning a job ID in bytes.
                     job_id = p.communicate(job_script)[0]
