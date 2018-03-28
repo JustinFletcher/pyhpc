@@ -13,6 +13,7 @@ import subprocess
 JOB_SCRIPT_TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
 JOB_SCRIPT_TEMPLATE = open(os.path.join(JOB_SCRIPT_TEMPLATE_DIR, 'default_job_template.pbs'), 'r').read()
 
+
 class ClusterExperiment(object):
     account = 'MHPCC96670DA1'
     queue = 'standard'
@@ -50,37 +51,69 @@ class ClusterExperiment(object):
 
     def get_configs(self):
         # Translate the design structure into flag strings.
-        exp_flag_strings = [['--{}={}'.format(f, v) for v in r] for (f, r) in self.independent_designs]
+
+        # Translate the design structure into flag strings.
+        exp_flag_strings = [['--' + f + '=' + str(v) for v in r]
+                            for (f, r) in self.independent_designs]
 
         # Produce the Cartesian set of configurations.
         indep_experimental_configs = list(itertools.product(*exp_flag_strings))
+
+        # Initialize a list to store coupled configurations.
         coupled_configs = []
+
         # Scope this variable higher due to write-out coupling.
         coupled_flag_strs = []
 
         for coupled_design in self.coupled_designs:
+
             for d in coupled_design:
-                coupled_flag_strs = [['--{}={}'.format(f, v) for v in r] for (f, r) in d]
+
+                coupled_flag_strs = [['--' + f + '=' + str(v) for v in r]
+                                     for (f, r) in d]
+
                 coupled_configs += list(itertools.product(*coupled_flag_strs))
 
-        # Join each coupled config to each independent config
-        if coupled_configs:
-            experimental_configs = []
-            for e in indep_experimental_configs:
-                for c in coupled_configs:
-                    experimental_configs.append(e + tuple(c))
+        # Initialize empty experimental configs list...
+        experimental_configs = []
 
+        # ...and if there are coupled configs...
+        if coupled_configs:
+
+            # ...iterate over each independent config...
+            for e in indep_experimental_configs:
+
+                    # ...then for each coupled config...
+                    for c in coupled_configs:
+
+                        # ...join the coupled config to the independent one.
+                        experimental_configs.append(e + tuple(c))
+
+        # Otherwise, ....
         else:
+
+            # ...just pass the independent experiments through.
             experimental_configs = indep_experimental_configs
 
-        return experimental_configs
+        return(experimental_configs)
 
     def get_parameter_labels(self):
-        parameter_labels = [f for (f, _) in self.independent_designs]
+
+        parameter_labels = []
+
+        for (f, _) in self.independent_designs:
+
+            parameter_labels.append(f)
 
         for coupled_design in self.coupled_designs:
+
             coupled_flag_strs = []
-            parameter_labels.extend([f for (f, _) in d for d in coupled_design])
+
+            for d in coupled_design:
+
+                coupled_flag_strs = [f for (f, _) in d]
+
+            parameter_labels += coupled_flag_strs
 
         return(parameter_labels)
 
@@ -141,7 +174,10 @@ class ClusterExperiment(object):
             if manager.lower() == 'pbs':
                 # Use subproces to command qsub to submit a job.
                 if not dry_run:
-                    p = subprocess.Popen('qsub', stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
+                    p = subprocess.Popen('qsub',
+                                         stdin=subprocess.PIPE,
+                                         stdout=subprocess.PIPE,
+                                         shell=True)
 
                 # Customize your options here.
                 job_name = job_fmt.format(job_idx)
