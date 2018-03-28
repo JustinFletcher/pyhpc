@@ -240,7 +240,7 @@ class ClusterExperiment(object):
             else:
                 raise ValueError("Unknown manager '{}' supplied to launch_experiment(). Allowed managers: 'pbs'".format(manager))
 
-    def join_job_output(self, log_dir, log_filename, max_runtime, job_ids, response_labels):
+    def join_job_output(self, log_dir, log_filename, max_runtime, response_labels):
         '''Wait until all the the jobs complete while writing partial results.
         '''
 
