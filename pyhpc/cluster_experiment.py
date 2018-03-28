@@ -139,9 +139,11 @@ class ClusterExperiment(object):
                 temp_log_dir = os.path.join(log_dir, 'templog_' + str(job_idx))
                 log_filename = 'templog_' + str(job_idx)
 
-                command_prologue = "module load anaconda2/5.0.1 gcc/5.3.0 cudnn/6.0"
+                # TODO: Command prologue and epilogue should be configurable.
+                command_prologue = "module load anaconda3/5.0.1 tensorflow"
                 command_epilogue = "wait"
                 command = []
+
                 # Build the commands that will be run simultaneously in the PBS script.
                 # This entails running them all in the background and waiting for them to complete
                 for i, experimental_config in enumerate(chunk):
