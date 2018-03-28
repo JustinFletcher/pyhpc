@@ -226,6 +226,12 @@ class ClusterExperiment(object):
 
                     # Send job_string to qsub, returning a job ID in bytes.
                     job_id = p.communicate(job_script)[0]
+                    print("job_id = ")
+                    print(job_id)
+
+                    # Convert the bytes to an ID string.
+                    job_id = str(job_id)
+
 
                     self._job_ids.append(job_id)
                     time.sleep(1)
