@@ -181,17 +181,17 @@ class ClusterExperiment(object):
 
                 # Customize your options here.
                 job_name = job_fmt.format(job_idx)
-                temp_log_dir = os.path.join(log_dir, 'templog_' + str(job_idx))
-                log_filename = 'templog_' + str(job_idx)
 
                 # TODO: Command prologue and epilogue should be configurable.
-                # command_prologue = "module load anaconda3/5.0.1 tensorflow"
+                # command_prologue = "module load tensorflow"
                 command_epilogue = "wait"
                 command = []
 
                 # Build the commands that will be run simultaneously in the PBS script.
                 # This entails running them all in the background and waiting for them to complete
                 for i, experimental_config in enumerate(chunk):
+                    temp_log_dir = os.path.join(log_dir, 'templog_' + str((job_idx * experiments_per_job) + i))
+                    log_filename = 'templog_' + str((job_idx * experiments_per_job) + i)
                     _cmd = "CUDA_VISIBLE_DEVICES={device} python {filename} {config} --log_dir={log_dir} --log_filename={log_filename}"
                     command.append(_cmd.format(device=i,
                                                filename=exp_filename,
@@ -226,13 +226,13 @@ class ClusterExperiment(object):
                 if not dry_run:
 
                     # Convert the job_script str to bytes for p.
-                    job_script = bytes(job_script, 'utf-8')
+                    job_script = job_script.encode('utf-8')
 
                     # Send job_string to qsub, returning a job ID in bytes.
                     job_id = p.communicate(job_script)[0]
 
                     # Convert the bytes to an ID string.
-                    job_id = str(job_id)[2:-2]
+                    job_id = job_id[:-1].decode('utf-8')
 
                     self._job_ids.append(job_id)
                     time.sleep(1)

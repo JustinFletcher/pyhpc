@@ -2,8 +2,6 @@
 #PBS -N {job_name}
 #PBS -l walltime={walltime}
 #PBS -l select={select}
-#PBS -o ~/log/output/{job_name}.out
-#PBS -e ~/log/error/{job_name}.err
 #PBS -A {account}
 #PBS -q {queue}
 
